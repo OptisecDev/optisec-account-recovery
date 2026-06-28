@@ -1,0 +1,55 @@
+# ======================================================
+# OPTISEC — Backend Deployment Guide for Railway.app
+# ======================================================
+#
+# هذا الملف يشرح خطوات رفع الباكند على Railway.app
+# يتضمن أيضاً workflow اختياري يستخدم Railway CLI
+#
+# الطريقة الأولى (الموصى بها): Deploy مباشر من GitHub
+# -------------------------------------------------------
+# 1. اذهب إلى https://railway.app وسجّل دخول بحساب GitHub
+# 2. اضغط "New Project" → "Deploy from GitHub repo"
+# 3. اختر هذا المستودع
+# 4. Railway سيكتشف railway.json تلقائياً
+# 5. اضغط على الخدمة → "Variables" وأضف:
+#       SUPABASE_URL   = <رابط مشروع Supabase>
+#       SUPABASE_KEY   = <مفتاح anon/service_role>
+#       GROQ_API_KEY   = <مفتاح Groq>
+#       ADMIN_PASSWORD = <كلمة مرور لوحة التحكم>
+# 6. اضغط "Deploy" — Railway سيبني ويشغّل الباكند
+# 7. من تبويب "Settings" انسخ رابط الدومين
+#    مثال: https://optisec-account-recovery-production.up.railway.app
+#
+# الطريقة الثانية: نشر تلقائي عبر GitHub Actions
+# -------------------------------------------------------
+# يتطلب إضافة السر التالي في إعدادات GitHub:
+#   Settings → Secrets → Actions → New repository secret
+#     RAILWAY_TOKEN = <توكن من railway.app/account/tokens>
+#
+# ======================================================
+
+name: Deploy Backend to Railway
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+      - 'railway.json'
+
+jobs:
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service backend

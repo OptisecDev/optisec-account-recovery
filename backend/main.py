@@ -10,6 +10,8 @@ import os
 
 load_dotenv()
 
+PORT = int(os.environ.get("PORT", 8000))
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "optisec2026")
