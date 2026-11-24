@@ -52,7 +52,7 @@ backend/create_table.sql
 
 - `/` — الصفحة الرئيسية + نموذج الطلب
 - `/track` — تتبع طلبك بالإيميل
-- `/admin` — لوحة تحكم الأدمن (كلمة المرور: `optisec2026`)
+- `/admin` — لوحة تحكم الأدمن (كلمة المرور: `the value of ADMIN_PASSWORD (set in Railway)`)
 
 ## المتغيرات البيئية
 
@@ -60,11 +60,11 @@ backend/create_table.sql
 ```
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_KEY=your_supabase_anon_key
-ADMIN_PASSWORD=optisec2026
+ADMIN_PASSWORD=the value of ADMIN_PASSWORD (set in Railway)
 ```
 
 ### Frontend (.env.local) — اختياري
 ```
 VITE_API_URL=http://localhost:8000
-VITE_ADMIN_PASSWORD=optisec2026
+VITE_ADMIN_PASSWORD=the value of ADMIN_PASSWORD (set in Railway)
 ```
