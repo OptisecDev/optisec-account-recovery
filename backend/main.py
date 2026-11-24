@@ -14,7 +14,12 @@ PORT = int(os.environ.get("PORT", 8000))
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "optisec2026")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise RuntimeError(
+        "ADMIN_PASSWORD environment variable is not set; refusing to start. "
+        "Set ADMIN_PASSWORD in the deployment environment (e.g. Railway) or backend/.env."
+    )
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 HIBP_API_KEY = os.getenv("HIBP_API_KEY")
 
