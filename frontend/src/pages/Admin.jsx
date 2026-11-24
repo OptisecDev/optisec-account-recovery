@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
-import { API_URL, ADMIN_PASSWORD } from '../config'
+import { API_URL } from '../config'
 
 const STATUS_LABELS = { pending: 'قيد الانتظار', in_progress: 'قيد التنفيذ', resolved: 'مكتمل' }
 const STATUS_COLORS = { pending: 'var(--yellow)', in_progress: 'var(--cyan)', resolved: 'var(--green)' }
 const STATUS_BG = { pending: 'rgba(255,214,0,0.1)', in_progress: 'rgba(0,229,255,0.1)', resolved: 'rgba(0,230,118,0.1)' }
 
 export default function Admin() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem('optisec_admin') === 'true')
+  const [token, setToken] = useState(() => sessionStorage.getItem('optisec_admin_token') || '')
+  const authed = Boolean(token)
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [requests, setRequests] = useState([])
@@ -23,41 +24,48 @@ export default function Admin() {
     setLoading(true)
     try {
       const [reqRes, statsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/requests`, { headers: { 'admin-password': ADMIN_PASSWORD } }),
-        axios.get(`${API_URL}/api/stats`, { headers: { 'admin-password': ADMIN_PASSWORD } }),
+        axios.get(`${API_URL}/api/requests`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/api/stats`, { headers: { Authorization: `Bearer ${token}` } }),
       ])
       setRequests(reqRes.data.data || [])
       setStats(statsRes.data)
-    } catch {
-      // silently handle
+    } catch (err) {
+      // token expired or invalid: log out; otherwise silently handle
+      if (err?.response?.status === 401) {
+        sessionStorage.removeItem('optisec_admin_token')
+        setToken('')
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [token])
 
   useEffect(() => {
     if (authed) fetchData()
   }, [authed, fetchData])
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem('optisec_admin', 'true')
-      setAuthed(true)
-    } else {
+    try {
+      // the password is checked by the backend, never in the browser
+      const res = await axios.post(`${API_URL}/api/admin/login`, { password })
+      sessionStorage.setItem('optisec_admin_token', res.data.token)
+      setPassword('')
+      setToken(res.data.token)
+    } catch {
       setLoginError('كلمة المرور غير صحيحة')
     }
   }
 
   const handleLogout = () => {
-    sessionStorage.removeItem('optisec_admin')
-    setAuthed(false)
+    sessionStorage.removeItem('optisec_admin_token')
+    setToken('')
   }
 
   const handleStatusChange = async (id, newStatus) => {
     setUpdatingId(id)
     try {
-      await axios.put(`${API_URL}/api/requests/${id}/status`, { status: newStatus }, { headers: { 'admin-password': ADMIN_PASSWORD } })
+      await axios.put(`${API_URL}/api/requests/${id}/status`, { status: newStatus }, { headers: { Authorization: `Bearer ${token}` } })
       await fetchData()
     } finally {
       setUpdatingId(null)

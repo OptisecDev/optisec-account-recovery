@@ -6,7 +6,10 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from groq import AsyncGroq
 import httpx
+import hmac
 import os
+import secrets
+import time
 
 load_dotenv()
 
@@ -59,8 +62,35 @@ class AppealRequest(BaseModel):
     language: str = "Arabic"
 
 
-def verify_admin(admin_password: Optional[str] = Header(None)):
-    if admin_password != ADMIN_PASSWORD:
+ADMIN_TOKEN_TTL_SECONDS = 8 * 60 * 60
+# Admin session tokens: token -> expiry time. In memory only, so a restart logs admins out.
+_admin_tokens: dict[str, float] = {}
+
+
+class AdminLogin(BaseModel):
+    password: str
+
+
+@app.post("/api/admin/login")
+async def admin_login(body: AdminLogin):
+    if not ADMIN_PASSWORD or not hmac.compare_digest(
+        body.password.encode("utf-8"), ADMIN_PASSWORD.encode("utf-8")
+    ):
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+    now = time.time()
+    for t, exp in list(_admin_tokens.items()):
+        if exp <= now:
+            del _admin_tokens[t]
+    token = secrets.token_urlsafe(32)
+    _admin_tokens[token] = now + ADMIN_TOKEN_TTL_SECONDS
+    return {"token": token, "token_type": "bearer", "expires_in": ADMIN_TOKEN_TTL_SECONDS}
+
+
+def verify_admin(authorization: Optional[str] = Header(None)):
+    token = authorization[7:] if authorization and authorization.startswith("Bearer ") else ""
+    expiry = _admin_tokens.get(token) if token else None
+    if expiry is None or expiry <= time.time():
+        _admin_tokens.pop(token, None)
         raise HTTPException(status_code=401, detail="Unauthorized")
     return True
 
